@@ -1,4 +1,4 @@
-package com.janilson.afinador_flutter
+package br.com.alfser.afinador
 
 import io.flutter.embedding.android.FlutterActivity
 
