@@ -16,22 +16,18 @@ class InstrumentSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 40,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: instruments.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final instrument = instruments[index];
-          final isSelected = instrument.name == selected.name;
-          return ChoiceChip(
-            label: Text(instrument.name),
-            selected: isSelected,
-            onSelected: (_) => onChanged(instrument),
-          );
-        },
-      ),
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      alignment: WrapAlignment.center,
+      children: instruments.map((instrument) {
+        final isSelected = instrument.name == selected.name;
+        return ChoiceChip(
+          label: Text(instrument.name),
+          selected: isSelected,
+          onSelected: (_) => onChanged(instrument),
+        );
+      }).toList(),
     );
   }
 }

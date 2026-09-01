@@ -29,9 +29,14 @@ class StringRow extends StatelessWidget {
           label: Text(s.label),
           onPressed: () => onPlay(s),
           backgroundColor: isActive ? Colors.green.shade100 : null,
-          side: isActive
-              ? const BorderSide(color: Colors.green, width: 2)
-              : null,
+          // Always reserve the same border width so only the color changes
+          // when a string becomes active — an invisible (width-2) border
+          // when inactive keeps every chip's size identical, avoiding a
+          // layout shift/reflow as the highlighted string changes.
+          side: BorderSide(
+            color: isActive ? Colors.green : Colors.transparent,
+            width: 2,
+          ),
         );
       }).toList(),
     );
