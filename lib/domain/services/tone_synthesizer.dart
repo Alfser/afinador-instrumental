@@ -22,6 +22,15 @@ class ToneSynthesizer {
   static const double _decayRate = 3.5;
   static const double _attackSeconds = 0.005;
 
+  // Human hearing is markedly less sensitive to bass at equal signal
+  // amplitude (equal-loudness contours), so a low string's digital peak
+  // must be pushed closer to full scale than a high string's for the two
+  // to sound comparably loud.
+  static const double _loudnessReferenceFrequency = 440.0; // A4
+  static const double _maxBoostOctaves = 4.0; // reaches down to ~E1 (41Hz)
+  static const double _quietPeak = 0.55; // target peak at/above the reference
+  static const double _loudPeak = 0.98; // target peak for the lowest notes
+
   /// Returns normalized samples (-1..1) for [frequencyHz] over
   /// [durationSeconds], at [sampleRate] samples per second.
   List<double> synthesize(
@@ -50,10 +59,21 @@ class ToneSynthesizer {
       if (s.abs() > peak) peak = s.abs();
     }
     if (peak > 0) {
+      final targetPeak = _targetPeakFor(frequencyHz);
       for (var i = 0; i < sampleCount; i++) {
-        samples[i] = samples[i] / peak * 0.9;
+        samples[i] = samples[i] / peak * targetPeak;
       }
     }
     return samples;
+  }
+
+  double _targetPeakFor(double frequencyHz) {
+    final octavesBelowReference =
+        (log(_loudnessReferenceFrequency / frequencyHz) / ln2).clamp(
+      0.0,
+      _maxBoostOctaves,
+    );
+    return _quietPeak +
+        (_loudPeak - _quietPeak) * (octavesBelowReference / _maxBoostOctaves);
   }
 }
