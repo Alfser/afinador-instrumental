@@ -6,6 +6,7 @@ import '../../domain/entities/instrument.dart';
 import '../../domain/entities/pitch_reading.dart';
 import '../../domain/entities/tuning_target.dart';
 import '../../domain/usecases/get_instruments_usecase.dart';
+import '../../domain/usecases/play_instrument_string_usecase.dart';
 import '../../domain/usecases/resolve_tuning_target_usecase.dart';
 import '../../domain/usecases/start_tuning_usecase.dart';
 import '../../domain/usecases/stop_tuning_usecase.dart';
@@ -21,10 +22,12 @@ class TunerViewModel extends ChangeNotifier {
     required StopTuningUseCase stopTuning,
     required WatchPitchUseCase watchPitch,
     required ResolveTuningTargetUseCase resolveTuningTarget,
+    required PlayInstrumentStringUseCase playInstrumentString,
   })  : _startTuning = startTuning,
         _stopTuning = stopTuning,
         _watchPitch = watchPitch,
         _resolveTuningTarget = resolveTuningTarget,
+        _playInstrumentString = playInstrumentString,
         instruments = getInstruments(),
         selectedInstrument = getInstruments().first;
 
@@ -32,6 +35,7 @@ class TunerViewModel extends ChangeNotifier {
   final StopTuningUseCase _stopTuning;
   final WatchPitchUseCase _watchPitch;
   final ResolveTuningTargetUseCase _resolveTuningTarget;
+  final PlayInstrumentStringUseCase _playInstrumentString;
 
   StreamSubscription<PitchReading?>? _subscription;
 
@@ -72,6 +76,15 @@ class TunerViewModel extends ChangeNotifier {
     target =
         reading == null ? null : _resolveTuningTarget(selectedInstrument, reading);
     notifyListeners();
+  }
+
+  Future<void> playString(InstrumentString string) async {
+    try {
+      await _playInstrumentString(string);
+    } catch (_) {
+      errorMessage = 'Não foi possível reproduzir o som da corda.';
+      notifyListeners();
+    }
   }
 
   void selectInstrument(Instrument instrument) {

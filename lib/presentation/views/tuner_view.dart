@@ -39,6 +39,7 @@ class TunerView extends StatelessWidget {
                 StringRow(
                   instrument: viewModel.selectedInstrument,
                   highlightedLabel: target?.label,
+                  onPlay: viewModel.playString,
                 ),
               const Spacer(),
               Text(
