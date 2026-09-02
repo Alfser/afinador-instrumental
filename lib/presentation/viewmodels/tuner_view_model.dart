@@ -8,6 +8,7 @@ import '../../domain/entities/tuning_target.dart';
 import '../../domain/usecases/get_instruments_usecase.dart';
 import '../../domain/usecases/play_instrument_string_usecase.dart';
 import '../../domain/usecases/resolve_tuning_target_usecase.dart';
+import '../../domain/usecases/set_tuning_range_usecase.dart';
 import '../../domain/usecases/start_tuning_usecase.dart';
 import '../../domain/usecases/stop_tuning_usecase.dart';
 import '../../domain/usecases/watch_pitch_usecase.dart';
@@ -22,11 +23,13 @@ class TunerViewModel extends ChangeNotifier {
     required StopTuningUseCase stopTuning,
     required WatchPitchUseCase watchPitch,
     required ResolveTuningTargetUseCase resolveTuningTarget,
+    required SetTuningRangeUseCase setTuningRange,
     required PlayInstrumentStringUseCase playInstrumentString,
   })  : _startTuning = startTuning,
         _stopTuning = stopTuning,
         _watchPitch = watchPitch,
         _resolveTuningTarget = resolveTuningTarget,
+        _setTuningRange = setTuningRange,
         _playInstrumentString = playInstrumentString,
         instruments = getInstruments(),
         selectedInstrument = getInstruments().first;
@@ -35,6 +38,7 @@ class TunerViewModel extends ChangeNotifier {
   final StopTuningUseCase _stopTuning;
   final WatchPitchUseCase _watchPitch;
   final ResolveTuningTargetUseCase _resolveTuningTarget;
+  final SetTuningRangeUseCase _setTuningRange;
   final PlayInstrumentStringUseCase _playInstrumentString;
 
   StreamSubscription<PitchReading?>? _subscription;
@@ -50,6 +54,7 @@ class TunerViewModel extends ChangeNotifier {
 
   Future<void> _start() async {
     errorMessage = null;
+    _applyTuningRange();
     final started = await _startTuning();
     if (!started) {
       errorMessage = 'Permissão de microfone negada.';
@@ -59,6 +64,13 @@ class TunerViewModel extends ChangeNotifier {
     _subscription = _watchPitch().listen(_onReading);
     isListening = true;
     notifyListeners();
+  }
+
+  void _applyTuningRange() {
+    _setTuningRange(
+      minFrequency: selectedInstrument.minDetectableFrequency,
+      maxFrequency: selectedInstrument.maxDetectableFrequency,
+    );
   }
 
   Future<void> _stop() async {
@@ -89,6 +101,7 @@ class TunerViewModel extends ChangeNotifier {
 
   void selectInstrument(Instrument instrument) {
     selectedInstrument = instrument;
+    if (isListening) _applyTuningRange();
     final currentReading = reading;
     target = currentReading == null
         ? null

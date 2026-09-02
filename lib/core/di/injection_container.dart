@@ -18,6 +18,7 @@ import '../../domain/services/yin_pitch_analyzer.dart';
 import '../../domain/usecases/get_instruments_usecase.dart';
 import '../../domain/usecases/play_instrument_string_usecase.dart';
 import '../../domain/usecases/resolve_tuning_target_usecase.dart';
+import '../../domain/usecases/set_tuning_range_usecase.dart';
 import '../../domain/usecases/start_tuning_usecase.dart';
 import '../../domain/usecases/stop_tuning_usecase.dart';
 import '../../domain/usecases/watch_pitch_usecase.dart';
@@ -64,6 +65,7 @@ void setupDependencies() {
   sl.registerFactory(() => StopTuningUseCase(sl()));
   sl.registerFactory(() => WatchPitchUseCase(sl()));
   sl.registerFactory(() => ResolveTuningTargetUseCase(sl()));
+  sl.registerFactory(() => SetTuningRangeUseCase(sl()));
   sl.registerFactory(() => PlayInstrumentStringUseCase(sl()));
 
   // View models
@@ -74,6 +76,7 @@ void setupDependencies() {
       stopTuning: sl(),
       watchPitch: sl(),
       resolveTuningTarget: sl(),
+      setTuningRange: sl(),
       playInstrumentString: sl(),
     ),
   );

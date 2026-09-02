@@ -19,12 +19,14 @@ class PitchRepositoryImpl implements PitchRepository {
     required NoteMapper noteMapper,
     this.sampleRate = 44100,
     this.bufferSize = 4096,
-    this.minFrequency = 30.0,
-    this.maxFrequency = 1500.0,
+    double minFrequency = 30.0,
+    double maxFrequency = 1500.0,
     this.analysisInterval = const Duration(milliseconds: 80),
   })  : _audioDataSource = audioDataSource,
         _pitchAnalyzer = pitchAnalyzer,
-        _noteMapper = noteMapper;
+        _noteMapper = noteMapper,
+        _minFrequency = minFrequency,
+        _maxFrequency = maxFrequency;
 
   final AudioDataSource _audioDataSource;
   final PitchAnalyzer _pitchAnalyzer;
@@ -32,8 +34,8 @@ class PitchRepositoryImpl implements PitchRepository {
 
   final int sampleRate;
   final int bufferSize;
-  final double minFrequency;
-  final double maxFrequency;
+  double _minFrequency;
+  double _maxFrequency;
   final Duration analysisInterval;
 
   final List<double> _buffer = [];
@@ -48,6 +50,15 @@ class PitchRepositoryImpl implements PitchRepository {
 
   @override
   bool get isListening => _subscription != null;
+
+  @override
+  void setFrequencyRange({
+    required double minFrequency,
+    required double maxFrequency,
+  }) {
+    _minFrequency = minFrequency;
+    _maxFrequency = maxFrequency;
+  }
 
   @override
   Future<bool> start() async {
@@ -81,8 +92,8 @@ class PitchRepositoryImpl implements PitchRepository {
     final result = _pitchAnalyzer.analyze(
       window,
       sampleRate: sampleRate,
-      minFrequency: minFrequency,
-      maxFrequency: maxFrequency,
+      minFrequency: _minFrequency,
+      maxFrequency: _maxFrequency,
     );
     if (result == null) {
       _readingController.add(null);
