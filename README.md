@@ -5,6 +5,10 @@ tempo real através do microfone e mostra o desvio em cents num ponteiro,
 com presets de afinação para violão, baixo, ukulele, violino, cavaquinho
 e um modo cromático (qualquer nota).
 
+<p align="center">
+  <img src="docs/screenshot-idle.png" alt="Tela do afinador" width="360">
+</p>
+
 ## Funcionalidades
 
 - Detecção de pitch em tempo real (algoritmo YIN) a partir do microfone.
