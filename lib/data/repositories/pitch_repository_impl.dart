@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import '../../domain/entities/pitch_reading.dart';
@@ -44,6 +45,7 @@ class PitchRepositoryImpl implements PitchRepository {
 
   StreamSubscription<Uint8List>? _subscription;
   Timer? _analysisTimer;
+  bool _isAnalyzing = false;
 
   @override
   Stream<PitchReading?> get readings => _readingController.stream;
@@ -86,15 +88,55 @@ class PitchRepositoryImpl implements PitchRepository {
     }
   }
 
+  // YIN over a few thousand samples is heavy enough (millions of
+  // multiply-adds per pass) to jank the UI if run inline on every timer
+  // tick, so each pass is offloaded to a worker isolate. `_isAnalyzing`
+  // skips a tick rather than queuing it if the previous pass is still
+  // running, so passes never pile up behind a slow one.
   void _analyze() {
+    if (_isAnalyzing) return;
     if (_buffer.length < bufferSize) return;
     final window = _buffer.sublist(_buffer.length - bufferSize);
-    final result = _pitchAnalyzer.analyze(
-      window,
+
+    _isAnalyzing = true;
+    _runInIsolate(
+      analyzer: _pitchAnalyzer,
+      window: window,
       sampleRate: sampleRate,
       minFrequency: _minFrequency,
       maxFrequency: _maxFrequency,
+    ).then(_onAnalysisResult).whenComplete(() => _isAnalyzing = false);
+  }
+
+  // Must be `static`: the closure passed to `Isolate.run` may only close
+  // over its own parameters. Building it inline in `_analyze()` put it in
+  // the same lexical scope as `.whenComplete(() => _isAnalyzing = false)`,
+  // and Dart shares one capture context between sibling closures in a
+  // scope — since that second closure needs `this` (to write the instance
+  // field), `this` rode along into the isolate closure too, and with it
+  // `_analysisTimer`, which `SendPort.send` rejects as unsendable. A
+  // `static` method has no `this` to leak in the first place.
+  static Future<PitchAnalysisResult?> _runInIsolate({
+    required PitchAnalyzer analyzer,
+    required List<double> window,
+    required int sampleRate,
+    required double minFrequency,
+    required double maxFrequency,
+  }) {
+    return Isolate.run(
+      () => analyzer.analyze(
+        window,
+        sampleRate: sampleRate,
+        minFrequency: minFrequency,
+        maxFrequency: maxFrequency,
+      ),
     );
+  }
+
+  void _onAnalysisResult(PitchAnalysisResult? result) {
+    // Stopped or disposed while this pass was running in its isolate.
+    if (_subscription == null) return;
+
     if (result == null) {
       _readingController.add(null);
       return;
