@@ -11,6 +11,6 @@ void main() {
 
     expect(find.text('Afinador'), findsOneWidget);
     expect(find.text('Iniciar'), findsOneWidget);
-    expect(find.text('Toque uma nota'), findsOneWidget);
+    expect(find.text('TOQUE UMA NOTA'), findsOneWidget);
   });
 }

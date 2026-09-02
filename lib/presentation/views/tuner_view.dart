@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../domain/entities/pitch_reading.dart';
 import '../viewmodels/tuner_view_model.dart';
 import '../widgets/instrument_selector.dart';
@@ -22,6 +23,7 @@ class TunerView extends StatelessWidget {
     final noteLabel = reading == null
         ? '--'
         : (target?.label ?? reading.note.label);
+    final inTune = reading != null && (target?.isInTune ?? false);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Afinador')),
@@ -54,36 +56,51 @@ class TunerView extends StatelessWidget {
                               ),
                           ],
                         ),
-                        Column(
-                          children: [
-                            const SizedBox(height: 24),
-                            Text(
-                              noteLabel,
-                              style: Theme.of(context).textTheme.displayLarge
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              reading == null
-                                  ? 'Toque uma nota'
-                                  : '${reading.frequency.toStringAsFixed(1)} Hz',
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 24),
-                            TunerGauge(cents: cents, active: reading != null),
-                            const SizedBox(height: 8),
-                            Text(
-                              _statusText(reading, cents),
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: reading == null
-                                    ? Colors.grey
-                                    : (cents.abs() <= 5
-                                          ? Colors.green
-                                          : Colors.orange),
+                        const SizedBox(height: 40),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 32,
+                            horizontal: 24,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                noteLabel,
+                                style: Theme.of(context).textTheme.displayLarge
+                                    ?.copyWith(
+                                      color: inTune ? AppColors.inTune : null,
+                                    ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 8),
+                              Text(
+                                reading == null
+                                    ? 'TOQUE UMA NOTA'
+                                    : '${reading.frequency.toStringAsFixed(1)} HZ',
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(letterSpacing: 0.05),
+                              ),
+                              const SizedBox(height: 24),
+                              TunerGauge(cents: cents, active: reading != null),
+                              const SizedBox(height: 8),
+                              Text(
+                                _statusText(reading, cents),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: reading == null
+                                      ? AppColors.textMuted
+                                      : (inTune
+                                            ? AppColors.inTune
+                                            : AppColors.warning),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         Column(
                           children: [
@@ -93,7 +110,9 @@ class TunerView extends StatelessWidget {
                                 padding: const EdgeInsets.only(bottom: 12),
                                 child: Text(
                                   viewModel.errorMessage!,
-                                  style: const TextStyle(color: Colors.red),
+                                  style: const TextStyle(
+                                    color: AppColors.danger,
+                                  ),
                                 ),
                               ),
                             FloatingActionButton.extended(

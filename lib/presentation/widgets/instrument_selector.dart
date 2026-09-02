@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../domain/entities/instrument.dart';
 
 class InstrumentSelector extends StatelessWidget {
@@ -26,6 +27,15 @@ class InstrumentSelector extends StatelessWidget {
           label: Text(instrument.name),
           selected: isSelected,
           onSelected: (_) => onChanged(instrument),
+          backgroundColor: AppColors.surface,
+          selectedColor: AppColors.accentGlow,
+          labelStyle: TextStyle(
+            color: isSelected ? AppColors.accentHover : AppColors.text,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+          ),
+          side: BorderSide(
+            color: isSelected ? AppColors.accentHover : AppColors.border,
+          ),
         );
       }).toList(),
     );
