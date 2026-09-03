@@ -27,6 +27,9 @@ class PitchRepositoryImpl implements PitchRepository {
     this.stabilizationWindow = 3,
     this.noteLockStreak = 3,
     this.silenceGrace = const Duration(milliseconds: 400),
+    this.loudAmplitudeReference = 0.12,
+    this.minSmoothingAlpha = 0.12,
+    this.maxSmoothingAlpha = 0.4,
   })  : _audioDataSource = audioDataSource,
         _pitchAnalyzer = pitchAnalyzer,
         _noteMapper = noteMapper,
@@ -64,8 +67,30 @@ class PitchRepositoryImpl implements PitchRepository {
   /// missed frame.
   final Duration silenceGrace;
 
+  /// RMS amplitude, roughly, of a firmly played note. A frame at or above
+  /// this is trusted as much as [maxSmoothingAlpha] allows by [_smooth];
+  /// below it, trust scales down linearly. Sits well above the analyzer's
+  /// silence floor (0.02) so it actually separates "just struck" from
+  /// "already decaying" rather than just "audible at all".
+  final double loudAmplitudeReference;
+
+  /// Floor on how much a single frame can move the smoothed frequency in
+  /// [_smooth], even when it's quiet/low-confidence — keeps the reading
+  /// able to follow a real (if soft) re-tuning instead of freezing solid.
+  final double minSmoothingAlpha;
+
+  /// Ceiling on how much a single frame can move the smoothed frequency in
+  /// [_smooth], even when it's loud and fully confident. Thinner/higher
+  /// strings (e.g. B3, E4) still carry noticeable frame-to-frame estimate
+  /// noise from YIN even while cleanly and loudly played — this makes sure
+  /// every reading is a blend of at least a couple of frames instead of one
+  /// frame being able to fully override the last, which is what a plain
+  /// amplitude/confidence floor alone doesn't catch.
+  final double maxSmoothingAlpha;
+
   final List<double> _buffer = [];
   final List<double> _recentFrequencies = [];
+  double? _smoothedFrequency;
   final StreamController<PitchReading?> _readingController =
       StreamController<PitchReading?>.broadcast();
 
@@ -107,6 +132,7 @@ class PitchRepositoryImpl implements PitchRepository {
 
     _buffer.clear();
     _recentFrequencies.clear();
+    _smoothedFrequency = null;
     _lockedNote = null;
     _candidateNoteLabel = null;
     _candidateStreak = 0;
@@ -191,6 +217,7 @@ class PitchRepositoryImpl implements PitchRepository {
       // rather than blanking the display; only a real gap clears it.
       if (_silenceStreak < _silenceHoldTicks) return;
       _recentFrequencies.clear();
+      _smoothedFrequency = null;
       _lockedNote = null;
       _candidateNoteLabel = null;
       _candidateStreak = 0;
@@ -203,7 +230,8 @@ class PitchRepositoryImpl implements PitchRepository {
     if (_recentFrequencies.length > stabilizationWindow) {
       _recentFrequencies.removeAt(0);
     }
-    final frequency = _median(_recentFrequencies);
+    final medianFrequency = _median(_recentFrequencies);
+    final frequency = _smooth(medianFrequency, result.confidence, result.amplitude);
     final detected = _noteMapper.map(frequency);
 
     final locked = _lockedNote;
@@ -240,6 +268,33 @@ class PitchRepositoryImpl implements PitchRepository {
     );
   }
 
+  /// Blends [frequency] into a running estimate, weighted by how much
+  /// this particular frame should be trusted: a loud, clean pluck (high
+  /// amplitude *and* YIN confidence) is taken almost as-is, while a
+  /// quiet, noisy tail — as a note rings out and volume drops — barely
+  /// nudges the estimate. That's what keeps the reading settled on the
+  /// note actually struck instead of wandering as the signal decays,
+  /// rather than following every frame with equal weight the way the
+  /// median filter above does. Trust is capped at [maxSmoothingAlpha]
+  /// rather than reaching 1.0, so even a fully loud/confident frame still
+  /// blends with recent history instead of being taken verbatim — needed
+  /// because YIN's own per-frame estimate noise (most noticeable on
+  /// thinner/higher strings) doesn't go away just because the note is
+  /// being played loudly and cleanly.
+  double _smooth(double frequency, double confidence, double amplitude) {
+    final previous = _smoothedFrequency;
+    if (previous == null) {
+      _smoothedFrequency = frequency;
+      return frequency;
+    }
+    final amplitudeTrust = (amplitude / loudAmplitudeReference).clamp(0.0, 1.0);
+    final trust =
+        (confidence * amplitudeTrust).clamp(minSmoothingAlpha, maxSmoothingAlpha);
+    final next = previous + trust * (frequency - previous);
+    _smoothedFrequency = next;
+    return next;
+  }
+
   double _median(List<double> values) {
     final sorted = [...values]..sort();
     return sorted[sorted.length ~/ 2];
@@ -254,6 +309,7 @@ class PitchRepositoryImpl implements PitchRepository {
     await _audioDataSource.stop();
     _buffer.clear();
     _recentFrequencies.clear();
+    _smoothedFrequency = null;
     _lockedNote = null;
     _candidateNoteLabel = null;
     _candidateStreak = 0;
