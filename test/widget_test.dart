@@ -10,7 +10,7 @@ void main() {
     await tester.pumpWidget(const AfinadorApp());
 
     expect(find.text('Afinador'), findsOneWidget);
-    expect(find.text('Iniciar'), findsOneWidget);
+    expect(find.text('Toque para iniciar'), findsOneWidget);
     expect(find.text('TOQUE UMA NOTA'), findsOneWidget);
   });
 }
