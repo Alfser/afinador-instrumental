@@ -11,10 +11,15 @@ e um modo cromático (qualquer nota).
 
 ## Funcionalidades
 
-- Detecção de pitch em tempo real (algoritmo YIN) a partir do microfone.
+- Detecção de pitch em tempo real (algoritmo YIN) a partir do microfone,
+  com leitura estabilizada por confiança/intensidade do sinal (evita
+  variar muito enquanto a nota decai).
 - Presets: Violão/Guitarra, Baixo, Ukulele, Violino, Cavaquinho e Cromático.
-- Ponteiro visual com desvio em cents e indicação de "Afinado!".
-- Destaque automático da corda mais próxima da nota detectada.
+- Mostrador tipo relógio (270°) com faixas coloridas, ticks numerados e
+  régua de cents auxiliar, indicando o desvio em tempo real.
+- Cordas do instrumento como cartões com seta de direção (ou check ao
+  afinar) e destaque automático da corda mais próxima da nota detectada.
+- Som de referência de cada corda (síntese de dedilhado, sem samples).
 
 ## Arquitetura
 
@@ -75,8 +80,8 @@ flutter run -d macos     # macOS desktop
 flutter run              # deixa escolher entre os conectados (Android/iOS)
 ```
 
-Ao abrir o app, escolha o instrumento desejado e toque em **Iniciar**
-para conceder a permissão de microfone e começar a afinação.
+Ao abrir o app, escolha o instrumento desejado e toque no botão de
+microfone para conceder a permissão de microfone e começar a afinação.
 
 ### Permissões de microfone
 
