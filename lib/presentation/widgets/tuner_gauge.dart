@@ -8,14 +8,31 @@ import '../../core/theme/app_colors.dart';
 /// -50 to +50, with colored zones, numbered major ticks and an animated
 /// needle — closer to a dedicated tuner's dial than a bare arc.
 class TunerGauge extends StatelessWidget {
-  const TunerGauge({super.key, required this.cents, required this.active});
+  const TunerGauge({super.key, required this.cents, required this.active, this.noteName});
 
   final double cents;
   final bool active;
 
+  /// The detected note's letter name without octave (e.g. "F#") — shown,
+  /// translated to solfège (e.g. "Fá#"), below the needle's pivot. The
+  /// header above the dial already shows the letter/cifra form; this adds
+  /// the do-re-mi form for people who don't read cifra notation.
+  final String? noteName;
+
+  static const _solfege = {
+    'C': 'Dó', 'C#': 'Dó#',
+    'D': 'Ré', 'D#': 'Ré#',
+    'E': 'Mi',
+    'F': 'Fá', 'F#': 'Fá#',
+    'G': 'Sol', 'G#': 'Sol#',
+    'A': 'Lá', 'A#': 'Lá#',
+    'B': 'Si',
+  };
+
   @override
   Widget build(BuildContext context) {
     final clamped = cents.clamp(-50, 50).toDouble();
+    final solfege = active ? _solfege[noteName] : null;
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0, end: clamped),
       duration: const Duration(milliseconds: 180),
@@ -23,7 +40,7 @@ class TunerGauge extends StatelessWidget {
       builder: (context, value, child) {
         return CustomPaint(
           size: const Size(320, 300),
-          painter: _GaugePainter(cents: value, active: active),
+          painter: _GaugePainter(cents: value, active: active, solfege: solfege),
         );
       },
     );
@@ -31,10 +48,11 @@ class TunerGauge extends StatelessWidget {
 }
 
 class _GaugePainter extends CustomPainter {
-  _GaugePainter({required this.cents, required this.active});
+  _GaugePainter({required this.cents, required this.active, this.solfege});
 
   final double cents;
   final bool active;
+  final String? solfege;
 
   /// Deviation, in cents, within which the pitch counts as "in tune" —
   /// drives the needle/zone color, matching `TuningTarget.isInTune`.
@@ -60,6 +78,25 @@ class _GaugePainter extends CustomPainter {
     _paintZones(canvas, center, radius);
     _paintTicks(canvas, center, radius);
     _paintNeedle(canvas, center, radius, inTune);
+    _paintSolfegeLabel(canvas, center, inTune);
+  }
+
+  /// Draws the solfège note name in the open 90° wedge below the pivot —
+  /// the dial's sweep leaves that space empty, so it reads as "inside the
+  /// clock" without overlapping any zone, tick or the needle itself.
+  void _paintSolfegeLabel(Canvas canvas, Offset center, bool inTune) {
+    if (solfege == null) return;
+    final color = inTune
+        ? AppColors.inTune
+        : (cents.abs() <= _closeThresholdCents ? AppColors.warning : AppColors.danger);
+    final painter = TextPainter(
+      text: TextSpan(
+        text: solfege,
+        style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.w700),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    painter.paint(canvas, center + Offset(-painter.width / 2, 34));
   }
 
   void _paintZones(Canvas canvas, Offset center, double radius) {
@@ -181,6 +218,8 @@ class _GaugePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _GaugePainter oldDelegate) {
-    return oldDelegate.cents != cents || oldDelegate.active != active;
+    return oldDelegate.cents != cents ||
+        oldDelegate.active != active ||
+        oldDelegate.solfege != solfege;
   }
 }

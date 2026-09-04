@@ -126,7 +126,11 @@ class TunerView extends StatelessWidget {
                                     ?.copyWith(letterSpacing: 0.05),
                               ),
                               const SizedBox(height: 12),
-                              TunerGauge(cents: cents, active: reading != null),
+                              TunerGauge(
+                                cents: cents,
+                                active: reading != null,
+                                noteName: reading == null ? null : noteName,
+                              ),
                               const SizedBox(height: 8),
                               CentsMeter(cents: cents, active: reading != null),
                               const SizedBox(height: 16),
